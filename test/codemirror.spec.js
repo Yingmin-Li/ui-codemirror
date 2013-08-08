@@ -1,7 +1,7 @@
 /*global beforeEach, afterEach, describe, it, inject, expect, module, spyOn, CodeMirror, angular, $*/
 /**
  * TODO Test all the CodeMirror events : cursorActivity viewportChange gutterClick focus blur scroll update.
- *      with  <textarea ui-codemirror="{onChange: doChange ,onCursorActivity: doSomething}" ng-model="foo">
+ *      with  <textarea ui-codemirror="{onCursorActivity: doSomething}" ng-model="foo">
  *
  */
 describe('uiCodemirror', function () {
@@ -118,7 +118,32 @@ describe('uiCodemirror', function () {
 			});
 		});
 
-		describe('when the model changes', function () {
+    describe('when the IDE changes ', function () {
+      it('should update the model', function () {
+        // Must have a parentNode for insertBefore (see https://github.com/marijnh/CodeMirror/blob/v3.11/lib/codemirror.js#L3390)
+        $compile('<div><textarea ui-codemirror ng-model="foo" ng-change="change()"></textarea></div>')(scope);
+        scope.change = function(){};
+         spyOn(scope, 'change').andCallFake(function() {
+           expect(scope.foo).toBe('baz');
+         });
+        $timeout.flush();
+
+        // change shouldn't be called initialy
+        expect(scope.change).not.toHaveBeenCalled();
+
+        // change shouldn't be called when the value change is coming from the model.
+        scope.$apply('foo = "bar"');
+        expect(scope.change).not.toHaveBeenCalled();
+
+        // change should be called when user changes the input.
+        codemirror.setValue('baz');
+        expect(scope.change.callCount).toBe(1);
+
+      });
+    });
+
+
+    describe('when the model changes', function () {
 			it('should update the IDE', function () {
         // Must have a parentNode for insertBefore (see https://github.com/marijnh/CodeMirror/blob/v3.11/lib/codemirror.js#L3390)
 				var element = $compile('<div><textarea ui-codemirror ng-model="foo"></textarea></div>')(scope);
@@ -130,7 +155,7 @@ describe('uiCodemirror', function () {
 		});
 
 		describe('when the model is undefined/null', function () {
-			it('should update the IDE with an empty string', function () {
+			it('shouldn\'t update the IDE', function () {
         // Must have a parentNode for insertBefore (see https://github.com/marijnh/CodeMirror/blob/v3.11/lib/codemirror.js#L3390)
 				var element = $compile('<div><textarea ui-codemirror ng-model="foo"></textarea></div>')(scope);
 				scope.$apply();
@@ -142,7 +167,7 @@ describe('uiCodemirror', function () {
 				expect(codemirror.getValue()).toBe('bar');
 				scope.$apply('foo = null');
 				expect(scope.foo).toBe(null);
-				expect(codemirror.getValue()).toBe('');
+				expect(codemirror.getValue()).toBe('bar');
 			});
 		});
 

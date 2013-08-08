@@ -21,14 +21,11 @@ angular.module('ui.codemirror', [])
         options = uiCodemirrorConfig.codemirror || {};
         opts = angular.extend({}, options, scope.$eval(attrs.uiCodemirror));
 
-        onChange = function (aEvent) {
-          return function (instance, changeObj) {
+        onChange = function () {
+          return function (instance) {
             var newValue = instance.getValue();
             if (newValue !== ngModel.$viewValue) {
               ngModel.$setViewValue(newValue);
-            }
-            if (typeof aEvent === "function") {
-              aEvent(instance, changeObj);
             }
             if (!scope.$$phase) {
               scope.$apply();
@@ -49,7 +46,7 @@ angular.module('ui.codemirror', [])
             }, true);
           }
 
-          codeMirror.on("change", onChange(opts.onChange));
+          codeMirror.on("change", onChange());
 
           for (var i = 0, n = events.length, aEvent; i < n; ++i) {
             aEvent = opts["on" + events[i].charAt(0).toUpperCase() + events[i].slice(1)];
@@ -65,10 +62,7 @@ angular.module('ui.codemirror', [])
           // CodeMirror expects a string, so make sure it gets one.
           // This does not change the model.
           ngModel.$formatters.push(function (value) {
-            if (angular.isUndefined(value) || value === null) {
-              return '';
-            }
-            else if (angular.isObject(value) || angular.isArray(value)) {
+             if (angular.isObject(value) || angular.isArray(value)) {
               throw new Error('ui-codemirror cannot use an object or an array as a model');
             }
             return value;
@@ -77,7 +71,9 @@ angular.module('ui.codemirror', [])
           // Override the ngModelController $render method, which is what gets called when the model is updated.
           // This takes care of the synchronizing the codeMirror element with the underlying model, in the case that it is changed by something else.
           ngModel.$render = function () {
-            codeMirror.setValue(ngModel.$viewValue);
+            if (angular.isString(ngModel.$viewValue)) {
+              codeMirror.setValue(ngModel.$viewValue);
+            }
           };
 
           // Watch ui-refresh and refresh the directive
